@@ -16,18 +16,10 @@
 			});
 		});
 	}
-	var arrfirst = function(arr) {
-		return arr[0]
-	}
-	var arrlast = function(arr) {
-		return arr[arr.length-1]
-	}
-	var arrprev = function(arr, item) {
-		return arr[arr.indexOf(item) - 1]
-	}
-	var arrnext = function(arr, item) {
-		return arr[arr.indexOf(item) + 1]
-	}
+	var arrfirst = function(arr) { return arr[0] }
+	var arrlast = function(arr) { return arr[arr.length-1] }
+	var arrprev = function(arr, item) { return arr[arr.indexOf(item) - 1] }
+	var arrnext = function(arr, item) { return arr[arr.indexOf(item) + 1] }
 
 	var Slide = function(content, $dummyContext) {
 		this.$el = $('<div class="sldr-item" style="position:absolute" />')
@@ -70,17 +62,19 @@
 
 
 	var Slider = function(el) {
-		this.$el = $(el)
+		var that = this
+
+		that.$el = $(el)
 		
 		// invisible dummy container to calculate items size
-		this.$dummyContainer = $('<div class="sldr-dummy" style="visibility:hidden" />')
-		this.$el.append(this.$dummyContainer)
+		that.$dummyContainer = $('<div class="sldr-dummy" style="visibility:hidden" />')
+		that.$el.append(that.$dummyContainer)
 
-		this.animateIsOn = false
-		this.sliderItems = []
-		this.width = parseInt(this.$el.width())
+		that.animateIsOn = false
+		that.sliderItems = []
+		that.width = parseInt(that.$el.width())
 
-		this.$el.css({'position': 'relative', 'overflow-x': 'hidden'})
+		that.$el.css({'position': 'relative', 'overflow-x': 'hidden'})
 	}
 	$.extend(Slider.prototype, {
 		append: function(el) {
@@ -134,19 +128,26 @@
 				that.$el.prepend(slide.$el)
 			})
 		}
-		, getVisible: function() {
+		, _getVisible: function() {
 			var res = []
 			$.each(this.sliderItems, function(index, item) {
 				if(item.isvisible) res.push(item)
 			})
 			return res
 		}
-		, mvleft: function() {
+		, getVisible: function() {
+			var res = []
+			$.each(this.sliderItems, function(index, item) {
+				if(item.isvisible) res.push(item.$el)
+			})
+			return $(res)
+		}
+		, mvleft: function(callback) {
 			var slider = this
 
 			if(slider.animateIsOn) {return}
 
-			var visibles = slider.getVisible()
+			var visibles = slider._getVisible()
 			var prev = arrprev(slider.sliderItems, visibles[0])
 
 			if(!prev) {return}
@@ -167,19 +168,22 @@
 
 					// recheck visibility
 					var last = arrlast(visibles)
-					if(last.rightPos > slider.width) last.hide()
+					if(last.leftPos > slider.width) last.hide()
 
 					slider.animateIsOn = false
+					if(callback) callback()
+					if(slider.sliderItems.indexOf(prev) == 0) {slider.$el.trigger('sldr:firstVisible')}
 				})
 			})
 		}
-		, mvright: function() {
+		, mvright: function(callback) {
 			var slider = this
 
 			if(slider.animateIsOn) {return}
 
-			var visibles = slider.getVisible()
+			var visibles = slider._getVisible()
 			var last = arrlast(visibles)
+			last.show() // recalulate item's positions in case of resize
 			var next = arrnext(slider.sliderItems, last)
 
 			if(!next) {return}
@@ -202,6 +206,8 @@
 					if(first.leftPos < 0) first.hide()
 
 					slider.animateIsOn = false
+					if(callback) callback()
+					if(slider.sliderItems.indexOf(next) == (slider.sliderItems.length -1)) {slider.$el.trigger('sldr:lastVisible')}
 				})
 			})
 		}
@@ -215,7 +221,7 @@
 				el.slider.append(item)
 			})
 		} else {
-			el.slider[method](options)
+			return el.slider[method](options)
 		}
 		return this
 	}
